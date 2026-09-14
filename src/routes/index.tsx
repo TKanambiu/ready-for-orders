@@ -128,21 +128,9 @@ function HomePage() {
           style={{ width: `${SLIDES.length * 100}%`, transform: `translateX(-${i * (100 / SLIDES.length)}%)` }}
         >
           {SLIDES.map((s, idx) => (
-            <div key={idx} className="relative flex min-h-[680px] shrink-0 flex-col overflow-hidden bg-topbar md:block md:h-[clamp(500px,calc(100svh-185px),680px)] md:min-h-0" style={{ width: `${100 / SLIDES.length}%` }}>
-              <div className="relative h-[280px] shrink-0 overflow-hidden bg-background sm:h-[340px] md:absolute md:inset-0 md:h-full">
-              <img
-                src={s.img}
-                alt={`${s.title} ${s.accent}`}
-                loading="eager"
-                decoding="async"
-                draggable={false}
-                fetchPriority={idx === 0 ? "high" : "low"}
-                className="absolute inset-0 h-full w-full object-cover object-center md:object-center"
-              />
-              <div className="hero-overlay absolute inset-0 hidden md:block" />
-              </div>
-              <div className="relative mx-auto flex w-full flex-1 items-center bg-topbar px-5 py-8 md:h-full md:max-w-7xl md:bg-transparent md:px-10 md:py-10">
-                <div className="max-w-xl text-topbar-foreground md:w-[46%]">
+            <div key={idx} className="grid min-h-[680px] shrink-0 overflow-hidden bg-topbar md:h-[clamp(540px,calc(100svh-185px),680px)] md:min-h-0 md:grid-cols-[minmax(25rem,42%)_1fr]" style={{ width: `${100 / SLIDES.length}%` }}>
+              <div className="order-2 flex items-center bg-topbar px-5 pb-16 pt-8 md:order-1 md:px-[clamp(2.5rem,5vw,6rem)] md:py-12">
+                <div className="max-w-xl text-topbar-foreground">
                   <div className="mb-5 inline-flex items-center gap-2.5 rounded-full border border-brand-soft/50 bg-topbar/35 px-4 py-1.5 text-[10px] font-semibold uppercase tracking-[0.3em] text-brand-soft backdrop-blur-sm">
                     <span className="h-1.5 w-1.5 rounded-full bg-accent" />
                     {s.eyebrow}
@@ -171,6 +159,17 @@ function HomePage() {
                   </div>
                 </div>
               </div>
+              <div className="relative order-1 h-[300px] overflow-hidden bg-background sm:h-[390px] md:order-2 md:h-full">
+                <img
+                  src={s.img}
+                  alt={`${s.title} ${s.accent}`}
+                  loading="eager"
+                  decoding="async"
+                  draggable={false}
+                  fetchPriority={idx === 0 ? "high" : "low"}
+                  className="absolute inset-0 h-full w-full object-cover object-center"
+                />
+              </div>
             </div>
           ))}
         </div>
@@ -191,7 +190,7 @@ function HomePage() {
           <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="m9 18 6-6-6-6" /></svg>
         </button>
 
-        <div className="absolute bottom-6 left-1/2 z-10 flex -translate-x-1/2 gap-2">
+        <div className="absolute bottom-6 left-1/2 z-10 flex -translate-x-1/2 gap-2 md:left-[21%]">
           {SLIDES.map((_, idx) => (
             <button
               key={idx}

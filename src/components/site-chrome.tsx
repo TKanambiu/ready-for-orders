@@ -262,7 +262,7 @@ export function SiteFooter() {
           <Link
             to="/"
             aria-label="Zentramed Health home"
-            className="inline-flex w-full max-w-sm border-l-4 border-brand-soft bg-background px-5 py-4 shadow-lg"
+            className="inline-flex w-full max-w-sm items-center"
           >
             <img src="/logo-x-clean.png" alt="Zentramed Health — Advancing Healthcare" loading="lazy" decoding="async" className="h-auto w-full object-contain object-left" />
           </Link>
