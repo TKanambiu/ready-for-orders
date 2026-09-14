@@ -7,3 +7,4 @@
 - [ ] Verify a real authenticated administrator session (blocked: external Supabase sessions cannot be injected into preview).
 - [x] Replace the site logo with Logo X across the header and footer.
 - [x] Keep homepage hero photos clear of text on desktop and mobile.
+- [x] Blend the transparent footer logo into the footer colors without a white panel.
