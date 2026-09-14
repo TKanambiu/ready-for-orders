@@ -95,7 +95,9 @@ function HomePage() {
 
   useEffect(() => {
     if (paused) return;
-    const t = setInterval(() => setI((v) => (v + 1) % SLIDES.length), 3000);
+    const media = window.matchMedia("(prefers-reduced-motion: reduce)");
+    if (media.matches) return;
+    const t = setInterval(() => setI((v) => (v + 1) % SLIDES.length), 8000);
     return () => clearInterval(t);
   }, [paused]);
 
@@ -114,7 +116,7 @@ function HomePage() {
 
       {/* Hero slider — press to pause, swipe or arrows to navigate */}
       <section
-        className="relative w-full cursor-grab select-none overflow-hidden bg-brand active:cursor-grabbing"
+        className="relative w-full cursor-grab select-none overflow-hidden bg-topbar active:cursor-grabbing"
         onMouseDown={(e) => onDown(e.clientX)}
         onMouseUp={(e) => onUp(e.clientX)}
         onMouseLeave={() => { dragX.current = null; setPaused(false); }}
@@ -122,55 +124,48 @@ function HomePage() {
         onTouchEnd={(e) => { onUp(e.changedTouches[0].clientX); setPaused(false); }}
       >
         <div
-          className="flex transition-transform duration-[550ms] ease-[cubic-bezier(0.65,0,0.35,1)]"
+          className="flex transition-transform duration-[900ms] ease-[cubic-bezier(0.65,0,0.35,1)]"
           style={{ width: `${SLIDES.length * 100}%`, transform: `translateX(-${i * (100 / SLIDES.length)}%)` }}
         >
           {SLIDES.map((s, idx) => (
-            <div key={idx} className="shrink-0 bg-brand" style={{ width: `${100 / SLIDES.length}%` }}>
-              <div className="mx-auto grid max-w-7xl items-center gap-8 px-4 py-10 md:min-h-[600px] md:grid-cols-2 md:gap-14 md:py-14">
-                {/* Copy column — kept fully clear of the photo */}
-                <div className="order-2 text-white md:order-1">
-                  <div className="mb-6 inline-flex items-center gap-2.5 rounded-full border border-accent/50 bg-accent/10 px-4 py-1.5 text-[10px] font-semibold uppercase tracking-[0.3em] text-accent backdrop-blur-sm">
+            <div key={idx} className="relative h-[560px] shrink-0 overflow-hidden bg-topbar md:h-[clamp(500px,calc(100svh-185px),680px)]" style={{ width: `${100 / SLIDES.length}%` }}>
+              <img
+                src={s.img}
+                alt={`${s.title} ${s.accent}`}
+                loading="eager"
+                decoding="async"
+                draggable={false}
+                fetchPriority={idx === 0 ? "high" : "low"}
+                className="absolute inset-0 h-full w-full object-cover object-center"
+              />
+              <div className="hero-overlay absolute inset-0" />
+              <div className="relative mx-auto flex h-full max-w-7xl items-center px-5 py-10 md:px-10">
+                <div className="max-w-xl text-topbar-foreground">
+                  <div className="mb-5 inline-flex items-center gap-2.5 rounded-full border border-brand-soft/50 bg-topbar/35 px-4 py-1.5 text-[10px] font-semibold uppercase tracking-[0.3em] text-brand-soft backdrop-blur-sm">
                     <span className="h-1.5 w-1.5 rounded-full bg-accent" />
                     {s.eyebrow}
                   </div>
-                  <h1 className="font-display text-[2.1rem] font-extrabold leading-[0.98] tracking-[-0.04em] md:text-[3.6rem]">
-                    <span className="block text-white">{s.title}</span>
-                    <span className="mt-1 block font-normal text-white/55">{s.accent}</span>
+                  <h1 className="font-display text-[2.5rem] font-extrabold leading-[0.98] md:text-[4rem]">
+                    <span className="block text-topbar-foreground">{s.title}</span>
+                    <span className="mt-1 block font-normal text-brand-soft">{s.accent}</span>
                   </h1>
-                  <p className="mt-6 max-w-lg text-[15px] font-light leading-relaxed text-white/75 md:text-[17px]">
+                  <p className="mt-5 max-w-lg text-[15px] font-light leading-relaxed text-topbar-foreground/80 md:text-[17px]">
                     {s.body}
                   </p>
-                  <ul className="mt-7 max-w-lg divide-y divide-white/10 border-y border-white/10">
+                  <ul className="mt-5 hidden max-w-lg divide-y divide-topbar-foreground/15 border-y border-topbar-foreground/15 sm:block">
                     {s.bullets.map((b) => (
-                      <li key={b} className="flex items-start gap-3 py-2.5 text-[13.5px] font-medium leading-snug text-white/85 md:text-[14.5px]">
+                      <li key={b} className="flex items-start gap-3 py-2 text-[13.5px] font-medium leading-snug text-topbar-foreground/90 md:text-[14px]">
                         <svg viewBox="0 0 24 24" className="mt-0.5 h-4 w-4 shrink-0 text-accent" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="m5 12 5 5L20 7" /></svg>
                         <span>{b}</span>
                       </li>
                     ))}
                   </ul>
-                  <div className="mt-8 flex flex-wrap items-center gap-3">
+                  <div className="mt-6 flex flex-wrap items-center gap-3">
                     <WhatsAppButton text={s.waText} />
-                    <Link to="/contact" className="group inline-flex items-center gap-2 rounded-full border border-white/25 px-6 py-3 text-[13px] font-semibold uppercase tracking-[0.14em] text-white transition hover:border-accent hover:text-accent">
+                    <Link to="/contact" className="group inline-flex items-center gap-2 rounded-full border border-topbar-foreground/35 bg-topbar/20 px-6 py-3 text-[13px] font-semibold uppercase tracking-[0.14em] text-topbar-foreground backdrop-blur-sm transition hover:border-accent hover:text-accent">
                       Contact Sales
                       <span className="transition-transform group-hover:translate-x-1">→</span>
                     </Link>
-                  </div>
-                </div>
-
-
-                {/* Photo column — nothing written over it */}
-                <div className="order-1 md:order-2">
-                  <div className="overflow-hidden rounded-2xl bg-white/95 p-3 shadow-2xl ring-1 ring-white/20">
-                    <img
-                      src={s.img}
-                      alt={`${s.title} ${s.accent}`}
-                      loading="eager"
-                      decoding="async"
-                      draggable={false}
-                      fetchPriority={idx === 0 ? "high" : "low"}
-                      className="h-56 w-full rounded-xl object-contain sm:h-72 md:h-[420px]"
-                    />
                   </div>
                 </div>
               </div>
@@ -182,14 +177,14 @@ function HomePage() {
         <button
           aria-label="Previous slide"
           onClick={() => go(-1)}
-          className="absolute left-3 top-1/2 z-10 hidden -translate-y-1/2 rounded-full bg-black/35 p-3 text-white backdrop-blur transition hover:bg-black/60 md:block"
+          className="absolute left-3 top-1/2 z-10 hidden -translate-y-1/2 rounded-full bg-topbar/45 p-3 text-topbar-foreground backdrop-blur transition hover:bg-topbar/75 md:block"
         >
           <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6" /></svg>
         </button>
         <button
           aria-label="Next slide"
           onClick={() => go(1)}
-          className="absolute right-3 top-1/2 z-10 hidden -translate-y-1/2 rounded-full bg-black/35 p-3 text-white backdrop-blur transition hover:bg-black/60 md:block"
+          className="absolute right-3 top-1/2 z-10 hidden -translate-y-1/2 rounded-full bg-topbar/45 p-3 text-topbar-foreground backdrop-blur transition hover:bg-topbar/75 md:block"
         >
           <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="m9 18 6-6-6-6" /></svg>
         </button>
@@ -199,7 +194,7 @@ function HomePage() {
             <button
               key={idx}
               onClick={() => setI(idx)}
-              className={`h-2 rounded-full transition-all ${idx === i ? "w-10 bg-accent" : "w-2 bg-white/60 hover:bg-white/90"}`}
+              className={`h-2 rounded-full transition-all ${idx === i ? "w-10 bg-accent" : "w-2 bg-topbar-foreground/60 hover:bg-topbar-foreground/90"}`}
               aria-label={`Slide ${idx + 1}`}
             />
           ))}
