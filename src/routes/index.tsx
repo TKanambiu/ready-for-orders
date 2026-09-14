@@ -128,7 +128,8 @@ function HomePage() {
           style={{ width: `${SLIDES.length * 100}%`, transform: `translateX(-${i * (100 / SLIDES.length)}%)` }}
         >
           {SLIDES.map((s, idx) => (
-            <div key={idx} className="relative h-[560px] shrink-0 overflow-hidden bg-topbar md:h-[clamp(500px,calc(100svh-185px),680px)]" style={{ width: `${100 / SLIDES.length}%` }}>
+            <div key={idx} className="relative flex min-h-[680px] shrink-0 flex-col overflow-hidden bg-topbar md:block md:h-[clamp(500px,calc(100svh-185px),680px)] md:min-h-0" style={{ width: `${100 / SLIDES.length}%` }}>
+              <div className="relative h-[280px] shrink-0 overflow-hidden bg-background sm:h-[340px] md:absolute md:inset-0 md:h-full">
               <img
                 src={s.img}
                 alt={`${s.title} ${s.accent}`}
@@ -136,16 +137,17 @@ function HomePage() {
                 decoding="async"
                 draggable={false}
                 fetchPriority={idx === 0 ? "high" : "low"}
-                className="absolute inset-0 h-full w-full object-cover object-center"
+                className="absolute inset-0 h-full w-full object-cover object-center md:object-center"
               />
-              <div className="hero-overlay absolute inset-0" />
-              <div className="relative mx-auto flex h-full max-w-7xl items-center px-5 py-10 md:px-10">
-                <div className="max-w-xl text-topbar-foreground">
+              <div className="hero-overlay absolute inset-0 hidden md:block" />
+              </div>
+              <div className="relative mx-auto flex w-full flex-1 items-center bg-topbar px-5 py-8 md:h-full md:max-w-7xl md:bg-transparent md:px-10 md:py-10">
+                <div className="max-w-xl text-topbar-foreground md:w-[46%]">
                   <div className="mb-5 inline-flex items-center gap-2.5 rounded-full border border-brand-soft/50 bg-topbar/35 px-4 py-1.5 text-[10px] font-semibold uppercase tracking-[0.3em] text-brand-soft backdrop-blur-sm">
                     <span className="h-1.5 w-1.5 rounded-full bg-accent" />
                     {s.eyebrow}
                   </div>
-                  <h1 className="font-display text-[2.5rem] font-extrabold leading-[0.98] md:text-[4rem]">
+                  <h1 className="font-display text-[2.25rem] font-extrabold leading-[0.98] md:text-[4rem]">
                     <span className="block text-topbar-foreground">{s.title}</span>
                     <span className="mt-1 block font-normal text-brand-soft">{s.accent}</span>
                   </h1>

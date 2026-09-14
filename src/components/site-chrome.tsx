@@ -90,14 +90,14 @@ export function SiteHeader() {
 
       <div className="border-b border-border">
         <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-1.5 md:gap-6 md:py-2">
-          <Link to="/" className="flex h-16 shrink-0 items-center" aria-label="Zentramed Health home">
+          <Link to="/" className="flex h-16 w-[12.5rem] shrink-0 items-center sm:w-[15rem] lg:w-[17rem]" aria-label="Zentramed Health home">
             <img
-              src="/logo-zentramed.png"
+              src="/logo-x-clean.png"
               alt="Zentramed Health — Advancing Healthcare and Humanitarian Solutions"
               loading="eager"
               decoding="sync"
               fetchPriority="high"
-              className="h-full w-auto max-w-[15rem] object-contain sm:max-w-[18rem] lg:max-w-[22rem]"
+              className="h-full w-full object-contain object-left"
             />
           </Link>
           <form
@@ -262,9 +262,9 @@ export function SiteFooter() {
           <Link
             to="/"
             aria-label="Zentramed Health home"
-            className="inline-flex border-l-4 border-brand-soft bg-background px-5 py-4 shadow-lg"
+            className="inline-flex w-full max-w-sm border-l-4 border-brand-soft bg-background px-5 py-4 shadow-lg"
           >
-            <img src="/logo-zentramed.png" alt="Zentramed Health — Advancing Healthcare" loading="lazy" decoding="async" className="h-14 w-auto max-w-full object-contain object-left sm:h-16" />
+            <img src="/logo-x-clean.png" alt="Zentramed Health — Advancing Healthcare" loading="lazy" decoding="async" className="h-auto w-full object-contain object-left" />
           </Link>
           <p className="mt-7 max-w-sm text-sm leading-7 text-footer-muted">
             Medical supplies, clinical equipment and humanitarian healthcare solutions for hospitals, clinics, NGOs and institutions across Africa.
