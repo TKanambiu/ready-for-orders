@@ -138,7 +138,7 @@ function HomePage() {
                 fetchPriority={idx === 0 ? "high" : "low"}
                 className="absolute inset-0 h-full w-full object-cover object-center"
               />
-              <div className="absolute inset-0 bg-[var(--gradient-hero)]" />
+              <div className="hero-overlay absolute inset-0" />
               <div className="relative mx-auto flex h-full max-w-7xl items-center px-5 py-10 md:px-10">
                 <div className="max-w-xl text-topbar-foreground">
                   <div className="mb-5 inline-flex items-center gap-2.5 rounded-full border border-brand-soft/50 bg-topbar/35 px-4 py-1.5 text-[10px] font-semibold uppercase tracking-[0.3em] text-brand-soft backdrop-blur-sm">
