@@ -45,36 +45,7 @@ export const Route = createFileRoute("/admin")({
 function AdminPage() {
   const [session, setSession] = useState<Session | null>(null);
   const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
-  const [ready, setReady] = useState(false);
   const [authError, setAuthError] = useState<string | null>(null);
-
-  useEffect(() => {
-    let active = true;
-    const timer = window.setTimeout(() => {
-      if (!active) return;
-      setAuthError("The sign-in service took too long to respond. Please refresh and try again.");
-      setReady(true);
-    }, 8000);
-
-    supabase.auth.getSession().then(({ data, error }) => {
-      if (!active) return;
-      window.clearTimeout(timer);
-      setSession(data.session);
-      setAuthError(error ? "We could not check your sign-in. Please try again." : null);
-      setReady(true);
-    });
-    const { data: sub } = supabase.auth.onAuthStateChange((_e, nextSession) => {
-      setSession(nextSession);
-      setIsAdmin(null);
-      setAuthError(null);
-      setReady(true);
-    });
-    return () => {
-      active = false;
-      window.clearTimeout(timer);
-      sub.subscription.unsubscribe();
-    };
-  }, []);
 
   useEffect(() => {
     if (!session) {
@@ -112,8 +83,18 @@ function AdminPage() {
     };
   }, [session]);
 
-  if (!ready) return <FullScreenLoader />;
-  if (!session) return <LoginScreen initialError={authError} />;
+  if (!session) {
+    return (
+      <LoginScreen
+        initialError={authError}
+        onSignedIn={(nextSession) => {
+          setAuthError(null);
+          setIsAdmin(null);
+          setSession(nextSession);
+        }}
+      />
+    );
+  }
   if (isAdmin === null) return <FullScreenLoader />;
   if (!isAdmin) return <NotAuthorised email={session.user.email ?? ""} error={authError} />;
   return <Dashboard email={session.user.email ?? ""} />;
@@ -151,7 +132,13 @@ function NotAuthorised({ email, error }: { email: string; error?: string | null 
 
 /* ---------------------------------------------------------------- login */
 
-function LoginScreen({ initialError }: { initialError?: string | null }) {
+function LoginScreen({
+  initialError,
+  onSignedIn,
+}: {
+  initialError?: string | null;
+  onSignedIn: (session: Session) => void;
+}) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
@@ -162,13 +149,19 @@ function LoginScreen({ initialError }: { initialError?: string | null }) {
     setBusy(true);
     setError(null);
     try {
-      const { error: signInError } = await supabase.auth.signInWithPassword({
+      const { data, error: signInError } = await supabase.auth.signInWithPassword({
         email: email.trim().toLowerCase(),
         password,
       });
       if (signInError) {
         setError(signInError.message || "Those details did not match an account. Please check and try again.");
+        return;
       }
+      if (!data.session) {
+        setError("The sign-in completed without an active session. Please try again.");
+        return;
+      }
+      onSignedIn(data.session);
     } catch (signInError) {
       setError(
         signInError instanceof Error
