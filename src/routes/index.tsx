@@ -128,47 +128,58 @@ function HomePage() {
           style={{ transform: `translateX(-${i * 100}%)` }}
         >
           {SLIDES.map((s, idx) => (
-            <div key={idx} className="grid w-full min-w-full shrink-0 overflow-hidden bg-topbar md:h-[clamp(540px,calc(100svh-185px),680px)] md:grid-cols-[minmax(20rem,36%)_minmax(0,1fr)]">
-              <div className="order-2 flex min-w-0 items-center bg-topbar px-5 pb-16 pt-8 md:order-1 md:px-[clamp(2rem,3.5vw,4.5rem)] md:py-10">
-                <div className="min-w-0 max-w-lg text-topbar-foreground">
-                  <div className="mb-5 inline-flex items-center gap-2.5 rounded-full border border-brand-soft/50 bg-topbar/35 px-4 py-1.5 text-[10px] font-semibold uppercase tracking-[0.3em] text-brand-soft backdrop-blur-sm">
-                    <span className="h-1.5 w-1.5 rounded-full bg-accent" />
-                    {s.eyebrow}
+            <div key={idx} className="relative w-full min-w-full shrink-0 overflow-hidden bg-topbar md:h-[clamp(540px,calc(100svh-185px),720px)] h-[540px]">
+              <img
+                src={s.img}
+                alt={`${s.title} ${s.accent}`}
+                loading="eager"
+                decoding="async"
+                draggable={false}
+                fetchPriority={idx === 0 ? "high" : "low"}
+                className="absolute inset-0 h-full w-full object-cover object-center"
+              />
+              <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-topbar via-topbar/85 to-transparent md:bg-gradient-to-t md:from-topbar md:via-topbar/70 md:to-transparent" />
+              <div className="absolute inset-x-0 bottom-0 z-10 px-5 pb-7 pt-24 md:px-[clamp(2rem,3.5vw,4.5rem)] md:pb-10 md:pt-32">
+                <div className="mx-auto flex max-w-7xl flex-col gap-6 md:flex-row md:items-end md:justify-between">
+                  <div className="min-w-0 max-w-2xl text-topbar-foreground">
+                    <div className="mb-4 inline-flex items-center gap-2.5 rounded-full border border-brand-soft/50 bg-topbar/35 px-4 py-1.5 text-[10px] font-semibold uppercase tracking-[0.3em] text-brand-soft backdrop-blur-sm">
+                      <span className="h-1.5 w-1.5 rounded-full bg-accent" />
+                      {s.eyebrow}
+                    </div>
+                    <h1 className="font-display text-[2.25rem] font-extrabold leading-[0.98] md:text-[clamp(2.75rem,4vw,3.75rem)]">
+                      <span className="block text-topbar-foreground">{s.title}</span>
+                      <span className="mt-1 block font-normal text-brand-soft">{s.accent}</span>
+                    </h1>
+                    <p className="mt-4 max-w-xl text-[15px] font-light leading-relaxed text-topbar-foreground/80 md:text-[17px]">
+                      {s.body}
+                    </p>
+                    <ul className="mt-4 hidden max-w-xl divide-y divide-topbar-foreground/15 border-y border-topbar-foreground/15 sm:block">
+                      {s.bullets.map((b) => (
+                        <li key={b} className="flex items-start gap-3 py-2 text-[13.5px] font-medium leading-snug text-topbar-foreground/90 md:text-[14px]">
+                          <svg viewBox="0 0 24 24" className="mt-0.5 h-4 w-4 shrink-0 text-accent" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="m5 12 5 5L20 7" /></svg>
+                          <span>{b}</span>
+                        </li>
+                      ))}
+                    </ul>
+                    <div className="mt-5 flex flex-wrap items-center gap-3">
+                      <WhatsAppButton text={s.waText} />
+                      <Link to="/contact" className="group inline-flex items-center gap-2 rounded-full border border-topbar-foreground/35 bg-topbar/20 px-6 py-3 text-[13px] font-semibold uppercase tracking-[0.14em] text-topbar-foreground backdrop-blur-sm transition hover:border-accent hover:text-accent">
+                        Contact Sales
+                        <span className="transition-transform group-hover:translate-x-1">→</span>
+                      </Link>
+                    </div>
                   </div>
-                  <h1 className="font-display text-[2.25rem] font-extrabold leading-[0.98] md:text-[clamp(2.75rem,4vw,3.75rem)]">
-                    <span className="block text-topbar-foreground">{s.title}</span>
-                    <span className="mt-1 block font-normal text-brand-soft">{s.accent}</span>
-                  </h1>
-                  <p className="mt-5 max-w-lg text-[15px] font-light leading-relaxed text-topbar-foreground/80 md:text-[17px]">
-                    {s.body}
-                  </p>
-                  <ul className="mt-5 hidden max-w-lg divide-y divide-topbar-foreground/15 border-y border-topbar-foreground/15 sm:block">
-                    {s.bullets.map((b) => (
-                      <li key={b} className="flex items-start gap-3 py-2 text-[13.5px] font-medium leading-snug text-topbar-foreground/90 md:text-[14px]">
-                        <svg viewBox="0 0 24 24" className="mt-0.5 h-4 w-4 shrink-0 text-accent" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="m5 12 5 5L20 7" /></svg>
-                        <span>{b}</span>
-                      </li>
+                  <div className="flex gap-2 md:mb-3">
+                    {SLIDES.map((_, idx2) => (
+                      <button
+                        key={idx2}
+                        onClick={() => setI(idx2)}
+                        className={`h-2 rounded-full transition-all ${idx2 === i ? "w-10 bg-accent" : "w-2 bg-topbar-foreground/60 hover:bg-topbar-foreground/90"}`}
+                        aria-label={`Slide ${idx2 + 1}`}
+                      />
                     ))}
-                  </ul>
-                  <div className="mt-6 flex flex-wrap items-center gap-3">
-                    <WhatsAppButton text={s.waText} />
-                    <Link to="/contact" className="group inline-flex items-center gap-2 rounded-full border border-topbar-foreground/35 bg-topbar/20 px-6 py-3 text-[13px] font-semibold uppercase tracking-[0.14em] text-topbar-foreground backdrop-blur-sm transition hover:border-accent hover:text-accent">
-                      Contact Sales
-                      <span className="transition-transform group-hover:translate-x-1">→</span>
-                    </Link>
                   </div>
                 </div>
-              </div>
-              <div className="relative order-1 h-[320px] min-w-0 overflow-hidden bg-background sm:h-[420px] md:order-2 md:h-full">
-                <img
-                  src={s.img}
-                  alt={`${s.title} ${s.accent}`}
-                  loading="eager"
-                  decoding="async"
-                  draggable={false}
-                  fetchPriority={idx === 0 ? "high" : "low"}
-                  className="absolute inset-0 h-full w-full object-cover object-center"
-                />
               </div>
             </div>
           ))}
