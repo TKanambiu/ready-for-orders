@@ -116,7 +116,7 @@ function HomePage() {
 
       {/* Hero slider — press to pause, swipe or arrows to navigate */}
       <section
-        className="relative w-full cursor-grab select-none overflow-hidden bg-topbar active:cursor-grabbing"
+        className="relative max-w-full cursor-grab select-none overflow-hidden bg-topbar active:cursor-grabbing"
         onMouseDown={(e) => onDown(e.clientX)}
         onMouseUp={(e) => onUp(e.clientX)}
         onMouseLeave={() => { dragX.current = null; setPaused(false); }}
@@ -124,18 +124,18 @@ function HomePage() {
         onTouchEnd={(e) => { onUp(e.changedTouches[0].clientX); setPaused(false); }}
       >
         <div
-          className="flex transition-transform duration-[900ms] ease-[cubic-bezier(0.65,0,0.35,1)]"
-          style={{ width: `${SLIDES.length * 100}%`, transform: `translateX(-${i * (100 / SLIDES.length)}%)` }}
+          className="flex w-full transition-transform duration-[900ms] ease-[cubic-bezier(0.65,0,0.35,1)]"
+          style={{ transform: `translateX(-${i * 100}%)` }}
         >
           {SLIDES.map((s, idx) => (
-            <div key={idx} className="grid min-h-[680px] shrink-0 overflow-hidden bg-topbar md:h-[clamp(540px,calc(100svh-185px),680px)] md:min-h-0 md:grid-cols-[minmax(25rem,42%)_1fr]" style={{ width: `${100 / SLIDES.length}%` }}>
-              <div className="order-2 flex items-center bg-topbar px-5 pb-16 pt-8 md:order-1 md:px-[clamp(2.5rem,5vw,6rem)] md:py-12">
-                <div className="max-w-xl text-topbar-foreground">
+            <div key={idx} className="grid w-full min-w-full shrink-0 overflow-hidden bg-topbar md:h-[clamp(540px,calc(100svh-185px),680px)] md:grid-cols-[minmax(20rem,36%)_minmax(0,1fr)]">
+              <div className="order-2 flex min-w-0 items-center bg-topbar px-5 pb-16 pt-8 md:order-1 md:px-[clamp(2rem,3.5vw,4.5rem)] md:py-10">
+                <div className="min-w-0 max-w-lg text-topbar-foreground">
                   <div className="mb-5 inline-flex items-center gap-2.5 rounded-full border border-brand-soft/50 bg-topbar/35 px-4 py-1.5 text-[10px] font-semibold uppercase tracking-[0.3em] text-brand-soft backdrop-blur-sm">
                     <span className="h-1.5 w-1.5 rounded-full bg-accent" />
                     {s.eyebrow}
                   </div>
-                  <h1 className="font-display text-[2.25rem] font-extrabold leading-[0.98] md:text-[4rem]">
+                  <h1 className="font-display text-[2.25rem] font-extrabold leading-[0.98] md:text-[clamp(2.75rem,4vw,3.75rem)]">
                     <span className="block text-topbar-foreground">{s.title}</span>
                     <span className="mt-1 block font-normal text-brand-soft">{s.accent}</span>
                   </h1>
@@ -159,7 +159,7 @@ function HomePage() {
                   </div>
                 </div>
               </div>
-              <div className="relative order-1 h-[300px] overflow-hidden bg-background sm:h-[390px] md:order-2 md:h-full">
+              <div className="relative order-1 h-[320px] min-w-0 overflow-hidden bg-background sm:h-[420px] md:order-2 md:h-full">
                 <img
                   src={s.img}
                   alt={`${s.title} ${s.accent}`}
