@@ -201,16 +201,6 @@ function HomePage() {
           <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="m9 18 6-6-6-6" /></svg>
         </button>
 
-        <div className="absolute bottom-6 left-1/2 z-10 flex -translate-x-1/2 gap-2 md:left-[21%]">
-          {SLIDES.map((_, idx) => (
-            <button
-              key={idx}
-              onClick={() => setI(idx)}
-              className={`h-2 rounded-full transition-all ${idx === i ? "w-10 bg-accent" : "w-2 bg-topbar-foreground/60 hover:bg-topbar-foreground/90"}`}
-              aria-label={`Slide ${idx + 1}`}
-            />
-          ))}
-        </div>
       </section>
 
 
@@ -261,7 +251,7 @@ function HomePage() {
           <div className="relative lg:col-span-6">
             <div className="absolute -left-4 -top-4 hidden h-full w-full border border-brand-soft md:block" />
             <img
-              src="/zentramed-warehouse.png"
+              src="/wrhs.png"
               alt="Zentramed medical-grade storage facility"
               className="relative aspect-[5/4] w-full object-cover shadow-xl"
               loading="lazy"
