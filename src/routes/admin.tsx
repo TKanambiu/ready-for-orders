@@ -1,16 +1,17 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useEffect, useMemo, useRef, useState } from "react";
-import { useQueryClient } from "@tanstack/react-query";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import type { Session } from "@supabase/supabase-js";
-import { supabase } from "@/integrations/supabase/client";
+import { adminSupabase, withTimeout } from "@/lib/admin-supabase";
 import { CATEGORIES, formatKES } from "@/data/catalogue";
 import {
   BUCKET,
   STORAGE_PREFIX,
   productKey,
   resolveImage,
-  useCatalogueDb,
   mergedProducts,
+  type CatalogueDb,
+  type DbProduct,
 } from "@/lib/catalogue-db";
 import {
   Loader2,
@@ -20,10 +21,9 @@ import {
   ImagePlus,
   Save,
   PlusCircle,
-  ShieldCheck,
   PackageSearch,
   Trash2,
-
+  AlertTriangle,
 } from "lucide-react";
 
 export const Route = createFileRoute("/admin")({
@@ -31,7 +31,10 @@ export const Route = createFileRoute("/admin")({
   head: () => ({
     meta: [
       { title: "Admin Dashboard | Zentramed Health" },
-      { name: "description", content: "Private Zentramed Health admin area for managing product photos and prices." },
+      {
+        name: "description",
+        content: "Private Zentramed Health admin area for managing product photos and prices.",
+      },
       { name: "robots", content: "noindex, nofollow" },
       { property: "og:title", content: "Zentramed Health Admin" },
       { property: "og:description", content: "Private admin area." },
@@ -43,61 +46,33 @@ export const Route = createFileRoute("/admin")({
 /* ---------------------------------------------------------------- shell */
 
 function AdminPage() {
+  const [checking, setChecking] = useState(true);
   const [session, setSession] = useState<Session | null>(null);
-  const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
-  const [authError, setAuthError] = useState<string | null>(null);
 
+  // Restore any saved session, but never block the login form on it.
   useEffect(() => {
-    if (!session) {
-      setIsAdmin(null);
-      return;
-    }
     let active = true;
-    const timer = window.setTimeout(() => {
-      if (!active) return;
-      setAuthError("We could not verify administrator access. Please sign out and try again.");
-      setIsAdmin(false);
-    }, 8000);
-
-    supabase
-      .from("user_roles")
-      .select("role")
-      .eq("user_id", session.user.id)
-      .eq("role", "admin")
-      .maybeSingle()
-      .then(({ data, error }) => {
-        if (!active) return;
-        window.clearTimeout(timer);
-        if (error) {
-          setAuthError("Administrator access could not be verified. Please try again.");
-          setIsAdmin(false);
-          return;
-        }
-        setAuthError(null);
-        setIsAdmin(data?.role === "admin");
+    withTimeout(adminSupabase.auth.getSession(), 4000)
+      .then(({ data }) => {
+        if (active) setSession(data.session ?? null);
+      })
+      .catch(() => undefined)
+      .finally(() => {
+        if (active) setChecking(false);
       });
-
     return () => {
       active = false;
-      window.clearTimeout(timer);
     };
-  }, [session]);
+  }, []);
 
-  if (!session) {
-    return (
-      <LoginScreen
-        initialError={authError}
-        onSignedIn={(nextSession) => {
-          setAuthError(null);
-          setIsAdmin(null);
-          setSession(nextSession);
-        }}
-      />
-    );
-  }
-  if (isAdmin === null) return <FullScreenLoader />;
-  if (!isAdmin) return <NotAuthorised email={session.user.email ?? ""} error={authError} />;
-  return <Dashboard email={session.user.email ?? ""} />;
+  const signOut = useCallback(() => {
+    setSession(null);
+    void adminSupabase.auth.signOut().catch(() => undefined);
+  }, []);
+
+  if (checking) return <FullScreenLoader />;
+  if (!session) return <LoginScreen onSignedIn={setSession} />;
+  return <Dashboard email={session.user.email ?? ""} onSignOut={signOut} />;
 }
 
 function FullScreenLoader() {
@@ -108,66 +83,38 @@ function FullScreenLoader() {
   );
 }
 
-async function signOut() {
-  await supabase.auth.signOut();
-}
-
-function NotAuthorised({ email, error }: { email: string; error?: string | null }) {
-  return (
-    <div className="flex min-h-screen flex-col items-center justify-center gap-4 bg-muted/30 px-4 text-center">
-      <ShieldCheck className="h-10 w-10 text-brand" />
-      <h1 className="font-display text-2xl font-bold">No admin access</h1>
-      <p className="max-w-md text-sm text-muted-foreground">
-        {error ?? `${email} is signed in but is not an administrator of this catalogue.`}
-      </p>
-      <button
-        onClick={signOut}
-        className="rounded-md bg-brand px-4 py-2 text-sm font-semibold text-brand-foreground"
-      >
-        Sign out
-      </button>
-    </div>
-  );
-}
-
 /* ---------------------------------------------------------------- login */
 
-function LoginScreen({
-  initialError,
-  onSignedIn,
-}: {
-  initialError?: string | null;
-  onSignedIn: (session: Session) => void;
-}) {
+function LoginScreen({ onSignedIn }: { onSignedIn: (session: Session) => void }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(initialError ?? null);
+  const [error, setError] = useState<string | null>(null);
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
+    if (busy) return;
     setBusy(true);
     setError(null);
     try {
-      const { data, error: signInError } = await supabase.auth.signInWithPassword({
-        email: email.trim().toLowerCase(),
-        password,
-      });
+      const { data, error: signInError } = await withTimeout(
+        adminSupabase.auth.signInWithPassword({
+          email: email.trim().toLowerCase(),
+          password,
+        }),
+        20_000,
+      );
       if (signInError) {
-        setError(signInError.message || "Those details did not match an account. Please check and try again.");
+        setError(signInError.message || "Those details did not match an account.");
         return;
       }
       if (!data.session) {
-        setError("The sign-in completed without an active session. Please try again.");
+        setError("Sign-in finished without a session. Please try again.");
         return;
       }
       onSignedIn(data.session);
-    } catch (signInError) {
-      setError(
-        signInError instanceof Error
-          ? signInError.message
-          : "The sign-in service did not respond. Check your connection and try again.",
-      );
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "The sign-in service did not respond.");
     } finally {
       setBusy(false);
     }
@@ -177,7 +124,7 @@ function LoginScreen({
     <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-brand via-brand/90 to-accent/60 px-4 py-12">
       <div className="w-full max-w-md rounded-2xl bg-background p-8 shadow-2xl">
         <div className="flex flex-col items-center text-center">
-          <img src="/logo-zentramed.png" alt="Zentramed Health" className="h-14 w-auto" />
+          <img src="/logo-x-clean.png" alt="Zentramed Health" className="h-12 w-auto" />
           <div className="mt-5 inline-flex items-center gap-2 rounded-full bg-brand/10 px-3 py-1 text-[11px] font-bold uppercase tracking-widest text-brand">
             <Lock className="h-3.5 w-3.5" /> Admin area
           </div>
@@ -189,10 +136,11 @@ function LoginScreen({
 
         <form onSubmit={submit} className="mt-7 space-y-4">
           <div>
-            <label className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
+            <label htmlFor="admin-email" className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
               Email address
             </label>
             <input
+              id="admin-email"
               type="email"
               autoComplete="username"
               required
@@ -203,10 +151,11 @@ function LoginScreen({
             />
           </div>
           <div>
-            <label className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
+            <label htmlFor="admin-password" className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
               Password
             </label>
             <input
+              id="admin-password"
               type="password"
               autoComplete="current-password"
               required
@@ -238,20 +187,79 @@ function LoginScreen({
   );
 }
 
+/* ------------------------------------------------------------ data layer */
+
+async function fetchAdminCatalogue(): Promise<CatalogueDb> {
+  const { data, error } = await adminSupabase
+    .from("products")
+    .select("id, product_key, name, category_slug, subcategory, price, reseller, image_url, is_custom");
+  if (error) throw new Error(error.message);
+
+  const rows = (data ?? []) as DbProduct[];
+  const paths = Array.from(
+    new Set(
+      rows
+        .map((r) => r.image_url)
+        .filter((u): u is string => !!u && u.startsWith(STORAGE_PREFIX))
+        .map((u) => u.slice(STORAGE_PREFIX.length)),
+    ),
+  );
+
+  const signed: Record<string, string> = {};
+  if (paths.length) {
+    const { data: urls } = await adminSupabase.storage
+      .from(BUCKET)
+      .createSignedUrls(paths, 60 * 60 * 24 * 7);
+    for (const u of urls ?? []) if (u.path && u.signedUrl) signed[u.path] = u.signedUrl;
+  }
+
+  const byKey: Record<string, DbProduct> = {};
+  for (const r of rows) byKey[r.product_key] = r;
+  return { byKey, signed };
+}
+
+async function uploadImage(file: File, name: string) {
+  const ext = file.name.split(".").pop()?.toLowerCase() || "jpg";
+  const path = `${productKey(name) || "product"}-${Date.now()}.${ext}`;
+  const { error } = await adminSupabase.storage.from(BUCKET).upload(path, file, {
+    cacheControl: "3600",
+    upsert: true,
+  });
+  if (error) throw new Error(error.message);
+  return `${STORAGE_PREFIX}${path}`;
+}
+
+function useAdminCatalogue() {
+  return useQuery({
+    queryKey: ["admin-catalogue-db"],
+    queryFn: fetchAdminCatalogue,
+    staleTime: 30_000,
+    retry: 1,
+  });
+}
+
+function useRefreshCatalogue() {
+  const qc = useQueryClient();
+  return useCallback(async () => {
+    await qc.invalidateQueries({ queryKey: ["admin-catalogue-db"] });
+    await qc.invalidateQueries({ queryKey: ["catalogue-db"] });
+  }, [qc]);
+}
+
 /* ------------------------------------------------------------ dashboard */
 
 type Tab = "catalogue" | "new";
 
-function Dashboard({ email }: { email: string }) {
+function Dashboard({ email, onSignOut }: { email: string; onSignOut: () => void }) {
   const [tab, setTab] = useState<Tab>("catalogue");
-  const { data: db, isLoading, isError, error, refetch } = useCatalogueDb();
+  const { data: db, isLoading, isError, error, refetch } = useAdminCatalogue();
   const products = useMemo(() => mergedProducts(db), [db]);
 
   return (
     <div className="min-h-screen bg-muted/30">
       <header className="sticky top-0 z-30 border-b border-border bg-background/95 backdrop-blur">
         <div className="mx-auto flex max-w-7xl flex-wrap items-center gap-4 px-4 py-3">
-          <img src="/logo-zentramed.png" alt="Zentramed Health" className="h-9 w-auto" />
+          <img src="/logo-x-clean.png" alt="Zentramed Health" className="h-8 w-auto" />
           <div className="mr-auto">
             <div className="font-display text-sm font-bold leading-tight">Catalogue Admin</div>
             <div className="text-[11px] text-muted-foreground">{email}</div>
@@ -263,7 +271,7 @@ function Dashboard({ email }: { email: string }) {
             View site
           </Link>
           <button
-            onClick={signOut}
+            onClick={onSignOut}
             className="inline-flex items-center gap-1.5 rounded-md bg-brand px-3 py-1.5 text-xs font-bold text-brand-foreground hover:bg-accent hover:text-accent-foreground"
           >
             <LogOut className="h-3.5 w-3.5" /> Sign out
@@ -296,7 +304,7 @@ function Dashboard({ email }: { email: string }) {
           <FullScreenLoader />
         ) : isError ? (
           <div className="mx-auto max-w-xl rounded-xl border border-destructive/30 bg-background p-8 text-center shadow-sm">
-            <PackageSearch className="mx-auto h-9 w-9 text-destructive" />
+            <AlertTriangle className="mx-auto h-9 w-9 text-destructive" />
             <h2 className="mt-4 font-display text-xl font-bold">Catalogue could not be loaded</h2>
             <p className="mt-2 text-sm text-muted-foreground">
               {error instanceof Error ? error.message : "Please check your connection and try again."}
@@ -312,7 +320,7 @@ function Dashboard({ email }: { email: string }) {
         ) : tab === "catalogue" ? (
           <CatalogueTab products={products} />
         ) : (
-          <NewProductTab />
+          <NewProductTab db={db} />
         )}
       </main>
     </div>
@@ -378,7 +386,7 @@ function CatalogueTab({ products }: { products: Row[] }) {
 }
 
 function ProductCard({ row }: { row: Row }) {
-  const qc = useQueryClient();
+  const refresh = useRefreshCatalogue();
   const fileRef = useRef<HTMLInputElement>(null);
   const [price, setPrice] = useState(String(row.price));
   const [reseller, setReseller] = useState(row.reseller != null ? String(row.reseller) : "");
@@ -398,12 +406,6 @@ function ProductCard({ row }: { row: Row }) {
     price !== String(row.price) ||
     reseller !== (row.reseller != null ? String(row.reseller) : "");
 
-  function pick(f: File | null) {
-    if (!f) return;
-    setFile(f);
-    setPreview(URL.createObjectURL(f));
-  }
-
   async function save() {
     setBusy(true);
     setStatus(null);
@@ -411,24 +413,23 @@ function ProductCard({ row }: { row: Row }) {
       let imageUrl: string | undefined;
       if (file) imageUrl = await uploadImage(file, row.name);
 
-      const payload = {
-        product_key: productKey(row.name),
-        name: row.name,
-        category_slug: row.categorySlug,
-        subcategory: row.subcategory,
-        price: Number(price) || 0,
-        reseller: reseller === "" ? null : Number(reseller),
-        ...(imageUrl ? { image_url: imageUrl } : {}),
-      };
-
-      const { error } = await supabase
-        .from("products")
-        .upsert(payload, { onConflict: "product_key" });
-      if (error) throw error;
+      const { error } = await adminSupabase.from("products").upsert(
+        {
+          product_key: productKey(row.name),
+          name: row.name,
+          category_slug: row.categorySlug,
+          subcategory: row.subcategory,
+          price: Number(price) || 0,
+          reseller: reseller === "" ? null : Number(reseller),
+          ...(imageUrl ? { image_url: imageUrl } : {}),
+        },
+        { onConflict: "product_key" },
+      );
+      if (error) throw new Error(error.message);
 
       setFile(null);
       setStatus("Saved");
-      await qc.invalidateQueries({ queryKey: ["catalogue-db"] });
+      await refresh();
     } catch (e) {
       setStatus(e instanceof Error ? e.message : "Could not save");
     }
@@ -456,7 +457,12 @@ function ProductCard({ row }: { row: Row }) {
           type="file"
           accept="image/*"
           hidden
-          onChange={(e) => pick(e.target.files?.[0] ?? null)}
+          onChange={(e) => {
+            const f = e.target.files?.[0] ?? null;
+            if (!f) return;
+            setFile(f);
+            setPreview(URL.createObjectURL(f));
+          }}
         />
       </div>
 
@@ -494,9 +500,7 @@ function ProductCard({ row }: { row: Row }) {
         </div>
 
         <div className="mt-auto flex items-center justify-between gap-2">
-          <span className="text-xs text-muted-foreground">
-            Live: {formatKES(row.price)}
-          </span>
+          <span className="text-xs text-muted-foreground">Live: {formatKES(row.price)}</span>
           <button
             onClick={save}
             disabled={!dirty || busy}
@@ -518,20 +522,8 @@ function ProductCard({ row }: { row: Row }) {
 
 /* --------------------------------------------------------- new products */
 
-async function uploadImage(file: File, name: string) {
-  const ext = file.name.split(".").pop()?.toLowerCase() || "jpg";
-  const path = `${productKey(name) || "product"}-${Date.now()}.${ext}`;
-  const { error } = await supabase.storage.from(BUCKET).upload(path, file, {
-    cacheControl: "3600",
-    upsert: true,
-  });
-  if (error) throw error;
-  return `${STORAGE_PREFIX}${path}`;
-}
-
-function NewProductTab() {
-  const qc = useQueryClient();
-  const { data: db } = useCatalogueDb();
+function NewProductTab({ db }: { db: CatalogueDb | undefined }) {
+  const refresh = useRefreshCatalogue();
   const [name, setName] = useState("");
   const [slug, setSlug] = useState(CATEGORIES[0]?.slug ?? "");
   const [subcategory, setSubcategory] = useState("");
@@ -545,20 +537,21 @@ function NewProductTab() {
   const subs = CATEGORIES.find((c) => c.slug === slug)?.subcategories ?? [];
 
   useEffect(() => {
-    setSubcategory(subs[0]?.name ?? "General");
+    setSubcategory(CATEGORIES.find((c) => c.slug === slug)?.subcategories[0]?.name ?? "General");
   }, [slug]);
 
   const customs = Object.values(db?.byKey ?? {}).filter((r) => r.is_custom);
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
+    if (busy) return;
     setBusy(true);
     setStatus(null);
     try {
       let imageUrl: string | null = null;
       if (file) imageUrl = await uploadImage(file, name);
 
-      const { error } = await supabase.from("products").upsert(
+      const { error } = await adminSupabase.from("products").upsert(
         {
           product_key: productKey(name),
           name: name.trim(),
@@ -571,7 +564,7 @@ function NewProductTab() {
         },
         { onConflict: "product_key" },
       );
-      if (error) throw error;
+      if (error) throw new Error(error.message);
 
       setStatus({ ok: true, msg: `${name} is now live on the website.` });
       setName("");
@@ -579,7 +572,7 @@ function NewProductTab() {
       setReseller("");
       setFile(null);
       setPreview(undefined);
-      await qc.invalidateQueries({ queryKey: ["catalogue-db"] });
+      await refresh();
     } catch (err) {
       setStatus({ ok: false, msg: err instanceof Error ? err.message : "Could not save product" });
     }
@@ -588,10 +581,7 @@ function NewProductTab() {
 
   return (
     <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_340px]">
-      <form
-        onSubmit={submit}
-        className="rounded-xl border border-border bg-background p-6 shadow-sm"
-      >
+      <form onSubmit={submit} className="rounded-xl border border-border bg-background p-6 shadow-sm">
         <h2 className="font-display text-xl font-bold">Add a new product</h2>
         <p className="mt-1 text-sm text-muted-foreground">
           It appears on the website catalogue as soon as you save.
@@ -726,9 +716,7 @@ function NewProductTab() {
           Products you added
         </h3>
         <div className="mt-4 space-y-3">
-          {customs.length === 0 && (
-            <p className="text-sm text-muted-foreground">Nothing added yet.</p>
-          )}
+          {customs.length === 0 && <p className="text-sm text-muted-foreground">Nothing added yet.</p>}
           {customs.map((c) => (
             <CustomProductRow key={c.id} row={c} signed={db?.signed ?? {}} />
           ))}
@@ -745,7 +733,7 @@ function CustomProductRow({
   row: { id: string; name: string; price: number; image_url: string | null };
   signed: Record<string, string>;
 }) {
-  const qc = useQueryClient();
+  const refresh = useRefreshCatalogue();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const src = resolveImage(row.image_url, signed);
@@ -755,12 +743,12 @@ function CustomProductRow({
     setBusy(true);
     setError(null);
     try {
-      const { error: delError } = await supabase.from("products").delete().eq("id", row.id);
-      if (delError) throw delError;
+      const { error: delError } = await adminSupabase.from("products").delete().eq("id", row.id);
+      if (delError) throw new Error(delError.message);
       if (row.image_url?.startsWith(STORAGE_PREFIX)) {
-        await supabase.storage.from(BUCKET).remove([row.image_url.slice(STORAGE_PREFIX.length)]);
+        await adminSupabase.storage.from(BUCKET).remove([row.image_url.slice(STORAGE_PREFIX.length)]);
       }
-      await qc.invalidateQueries({ queryKey: ["catalogue-db"] });
+      await refresh();
     } catch (e) {
       setError(e instanceof Error ? e.message : "Could not remove this product");
       setBusy(false);
@@ -791,4 +779,3 @@ function CustomProductRow({
     </div>
   );
 }
-
